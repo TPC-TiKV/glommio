@@ -979,23 +979,23 @@ impl SleepableRing {
         if let Some(mut sqe) = self.ring.prepare_sqe() {
             self.waiting_submission += 1;
 
-            // let op = UringDescriptor {
-                // fd: link.raw(),
-                // flags: SubmissionFlags::empty(),
-                // user_data: to_user_data(
-                    // self.source_map
-                        // .borrow_mut()
-                        // .add_source(link, self.submission_queue.clone()),
-                // ),
-                // args: UringOpDescriptor::PollAdd(common_flags() | read_flags()),
-            // };
-            // fill_sqe(
-                // &mut sqe,
-                // &op,
-                // DmaBuffer::new,
-                // &mut *self.source_map.borrow_mut(),
-            // );
-            self.ring.submit_sqes_and_wait(1).map(|x| x as usize)
+            let op = UringDescriptor {
+                fd: link.raw(),
+                flags: SubmissionFlags::empty(),
+                user_data: to_user_data(
+                    self.source_map
+                        .borrow_mut()
+                        .add_source(link, self.submission_queue.clone()),
+                ),
+                args: UringOpDescriptor::PollAdd(common_flags() | read_flags()),
+            };
+            fill_sqe(
+                &mut sqe,
+                &op,
+                DmaBuffer::new,
+                &mut *self.source_map.borrow_mut(),
+            );
+            self.ring.submit_sqes_and_wait_with_timeout(1, Duration::from_secs(1)).map(|x| x as usize)
         } else {
             // Can't link rings because we ran out of `CQE`s. Just can't sleep.
             // Submit what we have, once we're out of here we'll consume them
@@ -1495,7 +1495,8 @@ impl Reactor {
             None,
             None,
         );
-        ring.sleep(&mut link_rings).or_else(Self::busy_ok)?;
+        let events = ring.sleep(&mut link_rings).or_else(Self::busy_ok)?;
+        println!("link_rings_and_sleep events: {}", events);
         Ok(())
     }
 
@@ -1632,7 +1633,7 @@ impl Reactor {
             if events == 0 {
                 if self.eventfd_src.is_installed().unwrap() {
                     println!("notifier-{} sleep, eventfd: {}", self.notifier.id(), self.eventfd_src.raw());
-                    self.link_rings_and_sleep(&mut lat_ring)
+                    self.link_rings_and_sleep(&mut main_ring)
                         .expect("some error");
                     // May have new cancellations related to the link ring fd.
                     flush_cancellations!(into &mut 0; main_ring);
