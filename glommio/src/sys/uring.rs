@@ -1049,6 +1049,7 @@ impl UringCommon for SleepableRing {
             |mut src, res| {
                 record_stats(self, &mut src, &res);
                 if let SourceType::ForeignNotifier(_, installed) = &mut src.source_type {
+                    println!("uninstall ForeignNotifier");
                     *installed = false;
                 }
                 res
