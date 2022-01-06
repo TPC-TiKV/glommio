@@ -19,6 +19,7 @@ num_cpus = "1.13.0"
 pretty-bytes = "~0.2.2"
 sys-info = "~0.8.0"
 tokio = { version = "1" }
+async-channel = "1.6"
 
 [[example]]
 name = "echo"
