@@ -1239,8 +1239,8 @@ impl Reactor {
         );
 
         if !eventfd_src.is_installed().unwrap() {
-            println!("install notifier-{}", notifier.id());
-            latency_ring.install_eventfd(&eventfd_src);
+            let installed = latency_ring.install_eventfd(&eventfd_src);
+            println!("install notifier-{}: {}", notifier.id(), installed);
         }
 
         Ok(Reactor {
@@ -1630,7 +1630,7 @@ impl Reactor {
             let events = process_remote_channels() + self.flush_syscall_thread();
             if events == 0 {
                 if self.eventfd_src.is_installed().unwrap() {
-                println!("notifier-{} sleep", self.notifier.id());
+                    println!("notifier-{} sleep", self.notifier.id());
                     self.link_rings_and_sleep(&mut main_ring)
                         .expect("some error");
                     // May have new cancellations related to the link ring fd.

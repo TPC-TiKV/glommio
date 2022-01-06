@@ -324,10 +324,13 @@ impl SleepNotifier {
             .should_notify
             .compare_exchange(true, false, Ordering::Relaxed, Ordering::Relaxed)
             .is_ok()
-            || force
+            || true
         {
             println!("write eventfd notifier-{}", self.id());
-            write_eventfd(self.eventfd_fd());
+            for _ in 0..10 {
+                write_eventfd(self.eventfd_fd());
+                std::thread::sleep(Duration::from_millis(100));
+            }
         }
     }
 
