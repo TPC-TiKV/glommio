@@ -326,8 +326,8 @@ impl SleepNotifier {
             .is_ok()
             || true
         {
-            println!("write eventfd notifier-{}", self.id());
             for _ in 0..10 {
+                println!("write eventfd notifier-{}, eventfd: {}", self.id(), self.eventfd_fd());
                 write_eventfd(self.eventfd_fd());
                 std::thread::sleep(Duration::from_millis(100));
             }

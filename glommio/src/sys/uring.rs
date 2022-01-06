@@ -1630,7 +1630,7 @@ impl Reactor {
             let events = process_remote_channels() + self.flush_syscall_thread();
             if events == 0 {
                 if self.eventfd_src.is_installed().unwrap() {
-                    println!("notifier-{} sleep", self.notifier.id());
+                    println!("notifier-{} sleep, eventfd: {}", self.notifier.id(), self.eventfd_src.raw());
                     self.link_rings_and_sleep(&mut main_ring)
                         .expect("some error");
                     // May have new cancellations related to the link ring fd.
