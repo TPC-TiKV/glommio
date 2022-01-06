@@ -995,7 +995,8 @@ impl SleepableRing {
                 DmaBuffer::new,
                 &mut *self.source_map.borrow_mut(),
             );
-            self.ring.submit_sqes_and_wait_with_timeout(1, Duration::from_secs(1)).map(|x| x as usize)
+            // self.ring.submit_sqes_and_wait_with_timeout(1, Duration::from_secs(1)).map(|x| x as usize)
+            self.ring.submit_sqes_and_wait(1).map(|x| x as usize)
         } else {
             // Can't link rings because we ran out of `CQE`s. Just can't sleep.
             // Submit what we have, once we're out of here we'll consume them
@@ -1635,6 +1636,7 @@ impl Reactor {
                     println!("notifier-{} sleep, eventfd: {}", self.notifier.id(), self.eventfd_src.raw());
                     self.link_rings_and_sleep(&mut main_ring)
                         .expect("some error");
+                    consume_rings!(into &mut 0; poll_ring);
                     // May have new cancellations related to the link ring fd.
                     flush_cancellations!(into &mut 0; main_ring);
                     flush_rings!(main_ring)?;
