@@ -319,12 +319,14 @@ impl SleepNotifier {
     }
 
     pub(crate) fn notify(&self, force: bool) {
+        println!("notify notifier-{}: {}", self.id(), force);
         if self
             .should_notify
             .compare_exchange(true, false, Ordering::Relaxed, Ordering::Relaxed)
             .is_ok()
             || force
         {
+            println!("write eventfd notifier-{}", self.id());
             write_eventfd(self.eventfd_fd());
         }
     }
@@ -334,6 +336,7 @@ impl SleepNotifier {
         // most likely happened because the remote executor already died, in which
         // case they were no longer interested in this notification. But log.
         if self.waker_sender.send(waker).is_err() {
+            println!("notifier-{} queue waker", self.id());
             debug!(
                 "Executor {} cannot send the waker to its destination!",
                 self.id()
@@ -346,6 +349,7 @@ impl SleepNotifier {
     pub(crate) fn process_foreign_wakes(&self) -> usize {
         let mut processed = 0;
         while let Ok(waker) = self.foreign_wakes.try_recv() {
+            println!("notifier-{} process foreign_wakes", self.id());
             processed += 1;
             wake!(waker);
         }

@@ -1239,6 +1239,7 @@ impl Reactor {
         );
 
         if !eventfd_src.is_installed().unwrap() {
+            println!("install notifier-{}", notifier.id());
             latency_ring.install_eventfd(&eventfd_src);
         }
 
@@ -1620,6 +1621,7 @@ impl Reactor {
             // We have to sweep the remote channels function once more because since
             // last time until now it could be that something happened in a remote executor
             // that opened up room. If if did we bail on sleep and go process it.
+            println!("notifier-{} prepare to sleep", self.notifier.id());
             self.notifier.prepare_to_sleep();
             // See https://www.scylladb.com/2018/02/15/memory-barriers-seastar-linux/ for
             // details. This translates to `sys_membarrier()` /
@@ -1628,6 +1630,7 @@ impl Reactor {
             let events = process_remote_channels() + self.flush_syscall_thread();
             if events == 0 {
                 if self.eventfd_src.is_installed().unwrap() {
+                println!("notifier-{} sleep", self.notifier.id());
                     self.link_rings_and_sleep(&mut main_ring)
                         .expect("some error");
                     // May have new cancellations related to the link ring fd.
@@ -1636,6 +1639,7 @@ impl Reactor {
                     consume_rings!(into &mut 0; lat_ring, poll_ring, main_ring);
                 }
                 // Woke up, so no need to notify us anymore.
+                println!("notifier-{} wake up", self.id());
                 self.notifier.wake_up();
             }
         }
