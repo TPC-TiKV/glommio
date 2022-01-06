@@ -17,7 +17,7 @@ use std::{
     ffi::CStr,
     fmt,
     io,
-    io::{Error, ErrorKind},
+    io::{Error, ErrorKind, Write},
     os::unix::io::RawFd,
     panic,
     ptr,
@@ -995,8 +995,8 @@ impl SleepableRing {
                 DmaBuffer::new,
                 &mut *self.source_map.borrow_mut(),
             );
-            // self.ring.submit_sqes_and_wait_with_timeout(1, Duration::from_secs(1)).map(|x| x as usize)
-            self.ring.submit_sqes_and_wait(1).map(|x| x as usize)
+            self.ring.submit_sqes_and_wait_with_timeout(1, Duration::from_secs(1)).map(|x| x as usize)
+            // self.ring.submit_sqes_and_wait(1).map(|x| x as usize)
         } else {
             // Can't link rings because we ran out of `CQE`s. Just can't sleep.
             // Submit what we have, once we're out of here we'll consume them
@@ -1498,6 +1498,7 @@ impl Reactor {
         );
         let events = ring.sleep(&mut link_rings).or_else(Self::busy_ok)?;
         println!("link_rings_and_sleep events: {}", events);
+        std::io::stdout().flush().unwrap();
         Ok(())
     }
 
