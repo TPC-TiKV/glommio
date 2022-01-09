@@ -41,7 +41,7 @@ pub use placement::{CpuSet, Placement, PoolPlacement};
 use tracing::trace;
 
 use std::{
-    cell::RefCell,
+    cell::{RefCell, Cell},
     collections::{hash_map::Entry, BinaryHeap},
     future::Future,
     io,
@@ -934,6 +934,7 @@ pub struct LocalExecutor {
     parker: parking::Parker,
     id: usize,
     reactor: Rc<reactor::Reactor>,
+    force_poll_io: Cell<bool>,
 }
 
 impl LocalExecutor {
@@ -988,6 +989,7 @@ impl LocalExecutor {
                 ring_depth,
                 record_io_latencies,
             )),
+            force_poll_io: Cell::new(false),
         })
     }
 
@@ -1122,6 +1124,10 @@ impl LocalExecutor {
             } else {
                 ran = true;
             }
+            if self.force_poll_io.get() {
+                self.force_poll_io.set(false);
+                break;
+            }
         }
         ran
     }
@@ -1148,7 +1154,12 @@ impl LocalExecutor {
                 let mut tasks_executed_this_loop = 0;
                 loop {
                     let mut queue_ref = queue.borrow_mut();
-                    if self.need_preempt() || queue_ref.yielded() {
+                    if queue_ref.yielded() {
+                        // force poll io if yields a task queue.
+                        self.force_poll_io.set(true);
+                        break;
+                    }
+                    if self.need_preempt() {
                         break;
                     }
 
